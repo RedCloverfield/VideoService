@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status as http_status
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import Response, RedirectResponse
 
 from app.config import settings
 
@@ -27,9 +27,8 @@ def index() -> RedirectResponse:
     summary='Проверка состояния работоспособности сервиса',
     include_in_schema=False
 )
-def healthcheck() -> JSONResponse:
+def healthcheck() -> Response:
     """Ресурс для проверки состоянии сервиса."""
-    return JSONResponse(
-        content='Сервис в рабочем состоянии 😉',
+    return Response(
         status_code=http_status.HTTP_200_OK
     )
