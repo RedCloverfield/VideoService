@@ -8,9 +8,9 @@ from sqlalchemy import (
     TIMESTAMP,
 )
 
-from app.db.database_setup import mapper_registry, metadata
+from app.db.registry import metadata
 from app.enums.enums import VideoStatus
-from app.models.models import Video
+from app.models.video_model import Video
 
 
 video_table = Table(
@@ -23,9 +23,4 @@ video_table = Table(
     Column('camera_number', Integer),
     Column('location', String),
     Column('status', Enum(VideoStatus), default=VideoStatus.NEW)
-)
-
-mapper_registry.map_imperatively(
-    Video,
-    video_table
 )

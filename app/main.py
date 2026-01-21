@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.config import settings
+import app.db.mapping  # noqa
 from app.errors.exception_handlers import setup_error_handlers
 from app.routers.base_router import base_router
 from app.routers.video_router import video_router

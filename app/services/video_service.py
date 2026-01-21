@@ -1,8 +1,9 @@
-from app.db.database_setup import session_factory
+from app.db.sessions import session_factory
 from app.enums.enums import VideoStatus
 from app.errors.errors import NotFoundError, AlreadyExistsError
 from app.filters.filters import VideoFilter
 
+from app.models.video_model import Video
 from app.repositories.video_repository import VideoRepository
 from app.schemas.video_schemas import VideoCreateDTO, VideoResponseDTO
 

@@ -5,7 +5,7 @@ from fastapi import Query
 from fastapi_filter.contrib.sqlalchemy import Filter
 from pydantic import Field
 
-from app.models.models import Video
+from app.models.video_model import Video
 
 
 class VideoFilter(Filter):

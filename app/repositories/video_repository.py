@@ -1,7 +1,7 @@
 from sqlalchemy import select, update
 
-from app.db.database_setup import session_factory
-from app.models.models import Video
+from app.db.sessions import session_factory
+from app.models.video_model import Video
 from app.enums.enums import VideoStatus
 from app.filters.filters import VideoFilter
 
