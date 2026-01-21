@@ -1,4 +1,5 @@
 from sqlalchemy import select, update
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.sessions import session_factory
 from app.models.video_model import Video
@@ -12,10 +13,11 @@ class VideoRepository:
     """
 
     def __init__(self):
-        self.session_factory = session_factory
         self.model = Video
 
-    async def post_video(self, video: Video) -> Video:
+    async def post_video(
+        self, video: Video, session: AsyncSession
+    ) -> Video:
         """Создает и возвращает видео.
 
         Args:
@@ -24,13 +26,12 @@ class VideoRepository:
         Returns:
             Video: Видео.
         """
-        async with self.session_factory() as session:
-            session.add(video)
-            await session.commit()
-            return video
+        session.add(video)
+        await session.commit()
+        return video
 
     async def list_videos(
-        self, video_filter: VideoFilter
+        self, video_filter: VideoFilter, session: AsyncSession
     ) -> list[Video | None]:
         """Возвращает отфильтрованный список видео.
 
@@ -42,24 +43,24 @@ class VideoRepository:
             list[Optional[Video]]: Отфильтрованный список видео, или пустой
                 список, если удовлетворяющих запросу видео нет.
         """
-        async with self.session_factory() as session:
-            query = video_filter.filter(select(self.model))
-            result = await session.execute(query)
-            return result.scalars().all()
+        query = video_filter.filter(select(self.model))
+        result = await session.execute(query)
+        return result.scalars().all()
 
-    async def get_video_by(self, **kwargs) -> Video:
+    async def get_video_by(
+        self, session: AsyncSession, **kwargs
+    ) -> Video:
         """Возвращает видео по переданному параметру.
 
         Returns:
             Video: Видео.
         """
-        async with self.session_factory() as session:
-            query = select(self.model).filter_by(**kwargs)
-            result = await session.execute(query)
-            return result.scalar_one_or_none()
+        query = select(self.model).filter_by(**kwargs)
+        result = await session.execute(query)
+        return result.scalar_one_or_none()
 
     async def update_video_status(
-        self, video_id: int, status: VideoStatus
+        self, video_id: int, status: VideoStatus, session: AsyncSession
     ) -> Video:
         """Обновляет стаутс видео и возвращает его.
 
@@ -70,13 +71,12 @@ class VideoRepository:
         Returns:
             Video: Видео с обновленным статусом.
         """
-        async with self.session_factory() as session:
-            stmt = (
-                update(self.model)
-                .filter_by(id=video_id)
-                .values(status=status)
-                .returning(self.model)
-            )
-            result = await session.execute(stmt)
-            await session.commit()
-            return result.scalars().first()
+        stmt = (
+            update(self.model)
+            .filter_by(id=video_id)
+            .values(status=status)
+            .returning(self.model)
+        )
+        result = await session.execute(stmt)
+        await session.commit()
+        return result.scalars().first()

@@ -21,6 +21,6 @@ class VideoResponseDTO(VideoCreateDTO):
     """Схема ответа, содержащая данные о видео."""
 
     id: int = Field(description='Идентификатор видео')
-    status: VideoStatus
+    status: VideoStatus = Field(description='Статус видео')
 
     model_config = ConfigDict(from_attributes=True)

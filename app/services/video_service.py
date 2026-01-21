@@ -1,8 +1,10 @@
-from app.db.sessions import session_factory
+from typing import Callable
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from app.enums.enums import VideoStatus
 from app.errors.errors import NotFoundError, AlreadyExistsError
 from app.filters.filters import VideoFilter
-
 from app.models.video_model import Video
 from app.repositories.video_repository import VideoRepository
 from app.schemas.video_schemas import VideoCreateDTO, VideoResponseDTO
@@ -11,9 +13,21 @@ from app.schemas.video_schemas import VideoCreateDTO, VideoResponseDTO
 class VideoService:
     """Сервис для управления видео."""
 
-    def __init__(self):
-        self.repository = VideoRepository()
-        self.session_factory = session_factory
+    def __init__(
+        self,
+        session_factory: Callable[[], AsyncSession],
+        repository: VideoRepository
+    ):
+        self._session_factory = session_factory
+        self._repository = repository
+
+    @property
+    def repository(self):
+        return self._repository
+
+    @property
+    def session_factory(self):
+        return self._session_factory
 
     async def post_video(
         self, video_data: VideoCreateDTO
@@ -31,17 +45,21 @@ class VideoService:
         Returns:
             VideoResponseDTO: Данные созданного видео.
         """
-        if await self.repository.get_video_by(
-            video_path=video_data.video_path
-        ):
-            raise AlreadyExistsError(
-                'Видео по указанному пути уже существует!'
+        async with self.session_factory() as session:
+            if await self.repository.get_video_by(
+                video_path=video_data.video_path,
+                session=session
+            ):
+                raise AlreadyExistsError(
+                    'Видео по указанному пути уже существует!'
+                )
+            video = Video(
+                **video_data.model_dump()
             )
-        video = Video(
-            **video_data.model_dump()
-        )
-        video = await self.repository.post_video(video)
-        return VideoResponseDTO.model_validate(video)
+            video = await self.repository.post_video(
+                video=video, session=session
+            )
+            return VideoResponseDTO.model_validate(video)
 
     async def list_videos(
         self, video_filter: VideoFilter
@@ -58,8 +76,11 @@ class VideoService:
                 список видео или пустой список, если видео, удовлетворяющие
                 условиям поиска, не найдены.
         """
-        videos = await self.repository.list_videos(video_filter=video_filter)
-        return [VideoResponseDTO.model_validate(video) for video in videos]
+        async with self.session_factory() as session:
+            videos = await self.repository.list_videos(
+                video_filter=video_filter, session=session
+            )
+            return [VideoResponseDTO.model_validate(video) for video in videos]
 
     async def get_video(self, video_id: int) -> VideoResponseDTO:
         """Обращается к VideoRepository и возвращает видео с указанным
@@ -75,11 +96,14 @@ class VideoService:
         Returns:
             VideoResponseDTO: Данные запрошенного видео.
         """
-        if video := await self.repository.get_video_by(id=video_id):
-            return VideoResponseDTO.model_validate(video)
-        raise NotFoundError(
-                    'Видео с переданным идентификатором не найдено!'
-                )
+        async with self.session_factory() as session:
+            if video := await self.repository.get_video_by(
+                id=video_id, session=session
+            ):
+                return VideoResponseDTO.model_validate(video)
+            raise NotFoundError(
+                        'Видео с переданным идентификатором не найдено!'
+                    )
 
     async def update_video_status(
         self, video_id: int, status: VideoStatus
@@ -94,8 +118,11 @@ class VideoService:
         Returns:
              VideoResponseDTO: Данные обновленного видео.
         """
-        await self.repository.get_video_by(id=video_id)
-        video = await self.repository.update_video_status(
-            video_id=video_id, status=status
-        )
-        return VideoResponseDTO.model_validate(video)
+        async with self.session_factory() as session:
+            await self.repository.get_video_by(
+                id=video_id, session=session
+            )
+            video = await self.repository.update_video_status(
+                video_id=video_id, status=status, session=session
+            )
+            return VideoResponseDTO.model_validate(video)
